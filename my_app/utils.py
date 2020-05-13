@@ -1,3 +1,4 @@
+import cloudinary.uploader
 import os
 import praw
 
@@ -6,6 +7,7 @@ from django.db.utils import IntegrityError
 from hashlib import sha256
 from multiprocessing import Process, Manager
 from my_app.models import Submissions
+from wordcloud import WordCloud
 
 def fetch(submission_id):
     reddit_submission = reddit.submission(id=submission_id)
@@ -16,8 +18,22 @@ def fetch(submission_id):
     params['poster'] = reddit_submission.author.name
     params['subreddit'] = reddit_submission.subreddit.display_name
     params['num_comments'] = reddit_submission.num_comments
-    params['sha256'] = sha256(all_comments)
+    params['sha256'] = sha256(all_comments.encode('utf-8')).hexdigest()
     submission = Submissions(**params)
+
+    if params['num_comments'] is not 0:
+        wordcloud_config = {}
+        wordcloud_config['width'] = 2000
+        wordcloud_config['height'] = 1000
+        wordcloud_config['max_words'] = 500
+        wordcloud = WordCloud(**wordcloud_config).generate(all_comments)
+        image_name = '{}.jpg'.format(params['sha256'])
+        wordcloud.to_file(image_name)
+        wordcloud_url = cloudinary.uploader.upload(image_name, crop="limit",width=2000,height=1000)['secure_url']
+        submission.wordcloud_url = wordcloud_url
+        submission.save()
+        os.remove(image_name)
+
     try:
         submission.save()
     except IntegrityError as e:

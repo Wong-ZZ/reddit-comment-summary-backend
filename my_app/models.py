@@ -16,6 +16,8 @@ class Submissions(models.Model):
     num_comments = models.IntegerField(null=False, blank=False)
     # sha256 of all comments in the submission
     sha256 = models.CharField(max_length=64, null=False, blank=False)
+    # link to the wordcloud image
+    wordcloud_url = models.CharField(max_length=255, null=True, blank=False)
 
     class Meta:
         ordering = ['id', 'queried_at']

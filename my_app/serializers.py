@@ -4,4 +4,4 @@ from .models import Submissions
 class SubmissionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Submissions
-        fields = ['id', 'title', 'poster', 'subreddit', 'queried_at']
+        fields = ['id', 'title', 'poster', 'subreddit', 'queried_at', 'submission_id', 'wordcloud_url']
