@@ -1,25 +1,23 @@
 from .models import Submissions
 from .serializers import SubmissionSerializer
-from django.http import HttpResponse, JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from rest_framework.parsers import JSONParser
+from rest_framework import status
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
 
+@api_view(['GET'])
 def submission_list(request):
     if request.method == 'GET':
         submissions = Submissions.objects.all()
         serializer = SubmissionSerializer(submissions, many=True)
-        return JsonResponse(serializer.data, safe=False)
-    else:
-        return HttpResponse(status=404)
+        return Response(serializer.data)
 
+@api_view(['GET'])
 def submission_detail(request, pk):
     try:
         submission = Submissions.objects.get(pk=pk)
     except Submissions.DoesNotExist:
-        return HttpResponse(status=404)
+        return Response(status=status.HTTP_404_NOT_FOUND)
 
     if request.method == 'GET':
         serializer = SubmissionSerializer(submission)
-        return JsonResponse(serializer.data)
-    else:
-        return HttpResponse(status=404)
+        return Response(serializer.data)
