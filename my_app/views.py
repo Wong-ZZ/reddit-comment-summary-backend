@@ -6,21 +6,14 @@ from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-@api_view(['GET'])
-def submission_list(request):
-    if request.method == 'GET':
-        submissions = Submissions.objects.all()
-        serializer = SubmissionSerializer(submissions, many=True)
-        return Response(serializer.data)
-
 @api_view(['GET', 'POST'])
 def submission_detail(request, submission_id):
     if request.method == 'GET':
         try:
-            submission = Submissions.objects.get(submission_id=submission_id)
+            submissions = Submissions.objects.filter(submission_id__contains=submission_id)
         except Submissions.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        serializer = SubmissionSerializer(submission)
+        serializer = SubmissionSerializer(submissions, many=True)
         return Response(serializer.data)
 
     elif request.method == 'POST':
