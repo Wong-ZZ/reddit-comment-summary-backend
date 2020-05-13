@@ -12,7 +12,15 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 
 import os
 from dotenv import load_dotenv
+import praw
 load_dotenv()
+
+REDDIT_CLIENT_ID = os.getenv('REDDIT_CLIENT_ID')
+REDDIT_CLIENT_SECRET = os.getenv('REDDIT_CLIENT_SECRET')
+REDDIT_USER_AGENT = os.getenv('REDDIT_USER_AGENT')
+reddit = praw.Reddit(client_id=REDDIT_CLIENT_ID,
+                     client_secret=REDDIT_CLIENT_SECRET,
+                     user_agent=REDDIT_USER_AGENT)
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
