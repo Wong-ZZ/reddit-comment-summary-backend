@@ -21,6 +21,12 @@ def fetch(submission_id):
     params['sha256'] = sha256(all_comments.encode('utf-8')).hexdigest()
     submission = Submissions(**params)
 
+    try:
+        submission.save()
+    except IntegrityError as e:
+        query = Submissions.objects.get(sha256=params['sha256'])
+        return {'status': 'duplicate', 'query': query}
+
     if params['num_comments'] is not 0:
         wordcloud_config = {}
         wordcloud_config['width'] = 2000
@@ -34,11 +40,6 @@ def fetch(submission_id):
         submission.save()
         os.remove(image_name)
 
-    try:
-        submission.save()
-    except IntegrityError as e:
-        print('duplicate key')
-        return 'duplicate key'
     return {'sha256': params['sha256']}
 
 def get_all_comments(submission):
