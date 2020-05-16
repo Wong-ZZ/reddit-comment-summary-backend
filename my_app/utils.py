@@ -1,24 +1,36 @@
+import asyncio
+import aiohttp
 import cloudinary.uploader
+import math
 import os
 import praw
 
 from api.settings import reddit
 from django.db.utils import IntegrityError
 from hashlib import sha256
-from multiprocessing import Process, Manager
 from my_app.models import Submissions
+from praw.models import MoreComments
+from requests import get
 from wordcloud import WordCloud
+
+PUSHSHIFT_SUBMISSION_API = 'https://api.pushshift.io/reddit/submission/comment_ids/'
+PUSHSHIFT_COMMENT_API = 'https://api.pushshift.io/reddit/comment/search?ids='
+DELAY = 1.0
 
 def fetch(submission_id):
     reddit_submission = reddit.submission(id=submission_id)
     params = {}
-    all_comments = get_all_comments(reddit_submission)
+    all_comments = get_all_comments(submission_id)
     params['submission_id'] = submission_id
     params['title'] = reddit_submission.title
     params['poster'] = reddit_submission.author.name
     params['subreddit'] = reddit_submission.subreddit.display_name
     params['num_comments'] = reddit_submission.num_comments
     params['sha256'] = sha256(all_comments.encode('utf-8')).hexdigest()
+    mysha256 = params['sha256']
+    file = open(f'{mysha256}.txt', 'w')
+    file.write(all_comments)
+    file.close()
     submission = Submissions(**params)
 
     try:
@@ -31,8 +43,9 @@ def fetch(submission_id):
         wordcloud_config = {}
         wordcloud_config['width'] = 2000
         wordcloud_config['height'] = 1000
-        wordcloud_config['max_words'] = 500
-        wordcloud = WordCloud(**wordcloud_config).generate(all_comments)
+        wordcloud_config['max_words'] = 100
+        wordcloud_config['collocations'] = False
+        wordcloud = WordCloud(**wordcloud_config).generate_from_text(all_comments)
         image_name = '{}.jpg'.format(params['sha256'])
         wordcloud.to_file(image_name)
         wordcloud_url = cloudinary.uploader.upload(image_name, crop="limit",width=2000,height=1000)['secure_url']
@@ -42,20 +55,58 @@ def fetch(submission_id):
 
     return {'sha256': params['sha256']}
 
-def get_all_comments(submission):
-    def append_comment(comment_list, comment):
-            comment_list.append(comment.body)
+def get_all_comments(submission_id):
+    def append_comment(comments_body, comment_block):
+        resp = get(PUSHSHIFT_COMMENT_API + comment_ids_str)
+        comments_data = resp.json()['data']
+        body = ' '.join(list(map(lambda x: x['body'], comments_data)))
+        comments_body.append(body)
 
-    comment_list = Manager().list()
-    processes = []
-    comments = submission.comments.list()
+    # fetch all comment ids of a submission
+    all_comment_ids = get(PUSHSHIFT_SUBMISSION_API + submission_id).json()['data']
+    # list that contains url for fetching comments
+    fetch_urls = []
 
-    for c in comments:
-        p = Process(target=append_comment, args=(comment_list,c))
-        p.start()
-        processes.append(p)
+    # divide comment ids into blocks of 1000
+    i = 0
+    while i < math.ceil(len(all_comment_ids) / 1000):
+        start = i * 1000
+        end = start + 1000
+        sl = slice(start, end, 1)
+        comment_ids_str = ','.join(all_comment_ids[sl])
+        fetch_urls.append(f'{PUSHSHIFT_COMMENT_API}{comment_ids_str}')
+        i += 1
 
-    for p in processes:
-        p.join()
+    comments_body = []
+    comments_store = {}
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    future = asyncio.ensure_future(fetch_all(fetch_urls, comments_store, loop))
+    loop.run_forever()
 
-    return ''.join(comment_list)
+    count = 0
+    for j in range(i):
+        count += comments_store[f'count{j}']
+        comments_body.append(comments_store[j])
+
+    print('comments: ' + str(count))
+
+    return ' '.join(comments_body)
+
+async def fetch_comments(session, url, comments_store, index):
+    async with session.get(url) as response:
+        json = await response.json()
+        data = json['data']
+        comments = ' '.join(list(map(lambda c: c['body'].replace('\n', ' '), data)))
+        comments_store[index] = comments
+        comments_store[f'count{index}'] = len(data)
+
+async def fetch_all(fetch_urls, comments_store, loop):
+    async with aiohttp.ClientSession() as session:
+        tasks = []
+        for i in range(len(fetch_urls)):
+            url = fetch_urls[i]
+            tasks.append(asyncio.ensure_future(fetch_comments(session, url, comments_store, i)))
+            await asyncio.sleep(DELAY)
+        await asyncio.gather(*tasks)
+        loop.stop()
