@@ -7,7 +7,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Submissions
         fields = [
-            'id', 'title', 'poster', 'subreddit', 'queried_at',
+            'id', 'title', 'poster', 'subreddit', 'queried_at', 'commenter_count',
             'submission_id', 'wordcloud_url', 'num_comments', 'past_queries'
         ]
 

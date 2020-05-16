@@ -1,5 +1,5 @@
 from django.db import models
-from django.contrib.postgres.fields import ArrayField
+from django.contrib.postgres.fields import JSONField
 
 class Submissions(models.Model):
     # title of submission
@@ -18,6 +18,8 @@ class Submissions(models.Model):
     sha256 = models.CharField(max_length=64, null=False, blank=False)
     # link to the wordcloud image
     wordcloud_url = models.CharField(max_length=255, null=True, blank=False)
+    # number of times each user has commented in the submission
+    commenter_count = JSONField()
 
     class Meta:
         ordering = ['id', 'queried_at']
