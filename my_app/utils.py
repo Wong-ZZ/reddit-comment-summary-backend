@@ -88,8 +88,6 @@ def get_all_comments_info(submission_id):
         count += comments_store[f'count{j}']
         comments_body.append(comments_store[j])
 
-    print('comments: ' + str(count))
-
     return {'all_comments_body': ' '.join(comments_body), 'commenter_count': commenter_count}
 
 async def fetch_comments(session, url, comments_store, commenter_count, index):

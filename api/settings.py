@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.0/ref/settings/
 """
 
+import django_heroku
 import os
 import praw
 
@@ -35,7 +36,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = 'e-j%zt3fpm(^u7#344z^@hb(3sz-1u-xpztef8)_$2%#l=c8(#'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = []
 
@@ -67,7 +68,7 @@ MIDDLEWARE = [
 ]
 
 CORS_ORIGIN_WHITELIST = [
-    'http://localhost:3000',
+    os.getenv('WHITELIST_URL'),
 ]
 
 ROOT_URLCONF = 'api.urls'
@@ -142,4 +143,12 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.0/howto/static-files/
 
-STATIC_URL = '/static/'
+PROJECT_ROOT   =   ''
+STATIC_ROOT  =   os.path.join(PROJECT_ROOT, 'staticfiles')
+STATIC_URL = ""
+
+STATICFILES_DIRS = (
+    os.path.join(PROJECT_ROOT, 'staticfiles'),
+)
+
+django_heroku.settings(locals())
