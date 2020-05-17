@@ -10,6 +10,7 @@ from django.db.utils import IntegrityError
 from hashlib import sha256
 from my_app.models import Submissions
 from praw.models import MoreComments
+from prawcore.exceptions import NotFound
 from requests import get
 from wordcloud import WordCloud
 
@@ -19,6 +20,10 @@ DELAY = 1.0
 
 def fetch(submission_id):
     reddit_submission = reddit.submission(id=submission_id)
+    try:
+        reddit_submission.comments
+    except NotFound as e:
+        return {'status': 'not found'}
     params = {}
     all_comments_info = get_all_comments_info(submission_id)
     all_comments_body = all_comments_info['all_comments_body']

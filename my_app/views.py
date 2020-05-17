@@ -25,6 +25,8 @@ def submission_list(request, submission_id):
         elif resp['status'] is 'duplicate':
             serializer = SubmissionSerializer(resp['query'])
             return Response(serializer.data, status=status.HTTP_200_OK)
+        elif resp['status'] == 'not found':
+            return Response(status=status.HTTP_404_NOT_FOUND)
         else:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
