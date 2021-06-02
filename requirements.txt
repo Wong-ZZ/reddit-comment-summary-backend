@@ -31,7 +31,7 @@ six==1.14.0
 sqlparse==0.3.1
 typing-extensions==3.7.4.2
 update-checker==0.17
-urllib3==1.25.9
+urllib3==1.26.5
 websocket-client==0.57.0
 whitenoise==5.0.1
 wordcloud==1.7.0
